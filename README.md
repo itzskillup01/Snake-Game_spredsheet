@@ -1,6 +1,6 @@
-# 🐍 Snake Game in Excel
+# 🐍 Snake Game in Spreadsheet
 
-A classic Snake game built using **Microsoft Excel and VBA**. Control the snake with arrow keys, eat apples, and enjoy the retro gaming experience right inside Excel.
+A classic Snake game built using **Spreadsheet and VBA**. Control the snake with arrow keys, eat apples, and enjoy the retro gaming experience right inside Spredsheet.
 
 ### 🎮 Features
 - Arrow-key controls
@@ -9,12 +9,12 @@ A classic Snake game built using **Microsoft Excel and VBA**. Control the snake 
 - Start, stop, and resume functionality
 
 ### 🛠️ Tech Stack
-- Microsoft Excel
+- Spreadsheet or Microsoft Excel
 - VBA (Visual Basic for Applications)
 
 ### 🚀 How to Play
-1. Open the `.xlsm` workbook in desktop Excel.
+1. Open the `.xlsm` workbook in desktop Spreadsheet.
 2. Enable macros.
 3. Click **Start** and use the arrow keys to move the snake.
 
-**Built with ❤️ using Excel VBA.**
+**Built with ❤️ using Spreadsheet VBA.**
