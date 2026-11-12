@@ -1,10 +1,10 @@
 # Snake Game in Spreadsheet
 
-A Snake game built using **Spreadsheet and VBA**. Control the snake with arrow keys, snake eat apples and become bigger with every bite if the snake touch the any of the edge game over!!
+A Snake game built using **Excel, Spreadsheet and VBA**. Control the snake with arrow keys, snake eat apples and become bigger with every bite if the snake touch the any of the edge game over!!
 The retro gaming right inside Spredsheet.
 
 ### How to Play
-1. Open the `.xlsm` workbook in desktop Spreadsheet.
+1. Open the `.xlsm` workbook in desktop Excel or Spreadsheet.
 2. Enable macros.
 3. Click **Start** and use the arrow keys to move the snake.
 
