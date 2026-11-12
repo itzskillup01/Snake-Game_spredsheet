@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+
+  <style>
+    /* =========================
+       GLOBAL STYLES
+    ========================= */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 14px;
+      background: #0f172a;
+      color: #e5e7eb;
+      font: 14px Arial, sans-serif;
+      text-align: center;
+    }
+
+    h2 {
+      margin: 2px 0 8px;
+      letter-spacing: 3px;
+    }
+
+    /* =========================
+       SCOREBOARD
+    ========================= */
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      max-width: 360px;
+      margin: 8px auto 10px;
+    }
+
+    /* =========================
+       GAME BOARD
+    ========================= */
+
+    canvas {
+      display: block;
+      width: min(100%, 360px);
+      height: auto;
+      margin: auto;
+      background: #111827;
+      border: 2px solid #475569;
+      border-radius: 8px;
+    }
+
+    /* =========================
+       GAME BUTTONS
+    ========================= */
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: 0;
+      border-radius: 7px;
+      background: #22c55e;
+      color: #052e16;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button.secondary,
+    .pad button {
+      background: #334155;
+      color: white;
+    }
+
+    /* =========================
+       DIRECTIONAL CONTROLS
+    ========================= */
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 42px);
+      justify-content: center;
+      gap: 5px;
+      margin: 10px auto;
+    }
+
+    .pad button {
+      padding: 0;
+      font-size: 19px;
+    }
+
+    .up {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .down {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .right {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    /* =========================
+       GAME MESSAGES
+    ========================= */
+
+    #message {
+      min-height: 20px;
+      color: #fbbf24;
+      font-weight: bold;
+    }
+
+    .hint {
+      color: #94a3b8;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       GAME HEADER
+  ========================== -->
+
+  <h2>SNAKE</h2>
+
+  <div class="stats">
+    <span>Score: <b id="score">0</b></span>
+    <span>Best: <b id="best">0</b></span>
+  </div>
+
+  <!-- =========================
+       GAME CANVAS
+  ========================== -->
+
+  <canvas
+    id="board"
+    width="360"
+    height="500">
+  </canvas>
+
+  <!-- =========================
+       GAME ACTION BUTTONS
+  ========================== -->
+
+  <div class="buttons">
+    <button id="start">Start / Restart</button>
+    <button class="secondary" id="pause">Pause</button>
+  </div>
+
+  <!-- =========================
+       DIRECTIONAL BUTTONS
+  ========================== -->
+
+  <div class="pad">
+    <button class="up" data-dir="up">↑</button>
+    <button class="left" data-dir="left">←</button>
+    <button class="down" data-dir="down">↓</button>
+    <button class="right" data-dir="right">→</button>
+  </div>
+
+  <!-- =========================
+       STATUS AND INSTRUCTIONS
+  ========================== -->
+
+  <div id="message">
+    Press Start, then use your keyboard arrow keys.
+  </div>
+
+  <p class="hint">
+    Continuous movement · Arrow keys to steer ·
+    Space to pause · Enter to restart
+  </p>
+
+
+  <!-- =========================
+       GAME JAVASCRIPT
+  ========================== -->
+
+  <script>
+    (() => {
+
+      // =================================
+      // 1. GAME CONFIGURATION
+      // =================================
+
+      const canvas = document.getElementById('board');
+      const ctx = canvas.getContext('2d');
+
+      const COLS = 18;
+      const ROWS = 25;
+      const CELL = 20;
+
+      // =================================
+      // 2. GAME VARIABLES
+      // =================================
+
+      let snake;
+      let food;
+
+      let dir;
+      let nextDir;
+
+      let score = 0;
+      let best = 0;
+
+      let timer = null;
+      let running = false;
+      let over = false;
+
+      // =================================
+      // 3. HTML ELEMENT REFERENCES
+      // =================================
+
+      const scoreEl = document.getElementById('score');
+      const bestEl = document.getElementById('best');
+      const msg = document.getElementById('message');
+
+      // =================================
+      // 4. TIMER MANAGEMENT
+      // =================================
+
+      function stop() {
+        if (timer !== null) {
+          clearInterval(timer);
+          timer = null;
+        }
+      }
+
+      // =================================
+      // 5. START / RESET GAME
+      // =================================
+
+      function reset() {
+        stop();
+
+        snake = [
+          { x: 8, y: 12 },
+          { x: 7, y: 12 },
+          { x: 6, y: 12 }
+        ];
+
+        dir = { x: 1, y: 0 };
+        nextDir = { x: 1, y: 0 };
+
+        score = 0;
+        over = false;
+        running = true;
+
+        scoreEl.textContent = 0;
+
+        spawn();
+
+        msg.textContent = 'Go! Use the arrow keys.';
+
+        draw();
+
+        timer = setInterval(tick, 115);
+      }
+
+      // =================================
+      // 6. FOOD GENERATION
+      // =================================
+
+      function spawn() {
+        do {
+          food = {
+            x: Math.floor(Math.random() * COLS),
+            y: Math.floor(Math.random() * ROWS)
+          };
+
+        } while (
+          snake.some(
+            p => p.x === food.x && p.y === food.y
+          )
+        );
+      }
+
+      // =================================
+      // 7. SNAKE DIRECTION
+      // =================================
+
+      function steer(d) {
+        if (!running || over) return;
+
+        // Prevent reversing into itself
+        if (
+          d.x === -dir.x &&
+          d.y === -dir.y
+        ) {
+          return;
+        }
+
+        nextDir = d;
+      }
+
+      // =================================
+      // 8. MAIN GAME LOOP
+      // =================================
+
+      function tick() {
+        if (!running || over) return;
+
+        dir = nextDir;
+
+        const head = {
+          x: snake[0].x + dir.x,
+          y: snake[0].y + dir.y
+        };
+
+        const eat =
+          head.x === food.x &&
+          head.y === food.y;
+
+        // Wall collision detection
+        if (
+          head.x < 0 ||
+          head.x >= COLS ||
+          head.y < 0 ||
+          head.y >= ROWS
+        ) {
+          finish();
+          return;
+        }
+
+        // Self collision detection
+        const bodyToCheck = eat
+          ? snake
+          : snake.slice(0, -1);
+
+        if (
+          bodyToCheck.some(
+            p => p.x === head.x && p.y === head.y
+          )
+        ) {
+          finish();
+          return;
+        }
+
+        // Move snake
+        snake.unshift(head);
+
+        // Food collection
+        if (eat) {
+          score += 10;
+
+          scoreEl.textContent = score;
+
+          if (score > best) {
+            best = score;
+            bestEl.textContent = best;
+          }
+
+          spawn();
+
+        } else {
+          snake.pop();
+        }
+
+        draw();
+      }
+
+      // =================================
+      // 9. GAME OVER
+      // =================================
+
+      function finish() {
+        over = true;
+        running = false;
+
+        stop();
+
+        msg.textContent =
+          'GAME OVER — press Start / Restart to play again.';
+
+        draw(true);
+
+        // Save high score in Google Sheets
+        try {
+          google.script.run.saveSnakeHighScore(score);
+        } catch (e) {
+          // Game remains playable if saving fails
+        }
+      }
+
+      // =================================
+      // 10. PAUSE / RESUME
+      // =================================
+
+      function pause() {
+        if (over) return;
+
+        if (!snake) {
+          reset();
+          return;
+        }
+
+        running = !running;
+
+        if (running) {
+          msg.textContent = 'Resumed.';
+          timer = setInterval(tick, 115);
+
+        } else {
+          stop();
+
+          msg.textContent =
+            'Paused. Press Space or Pause to continue.';
+        }
+      }
+
+      // =================================
+      // 11. RENDER GAME BOARD
+      // =================================
+
+      function draw(gameover = false) {
+
+        // Background
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(0, 0, 360, 500);
+
+        // Grid
+        ctx.strokeStyle = '#1f2937';
+
+        for (let x = 0; x <= COLS; x++) {
+          ctx.beginPath();
+          ctx.moveTo(x * CELL, 0);
+          ctx.lineTo(x * CELL, 500);
+          ctx.stroke();
+        }
+
+        for (let y = 0; y <= ROWS; y++) {
+          ctx.beginPath();
+          ctx.moveTo(0, y * CELL);
+          ctx.lineTo(360, y * CELL);
+          ctx.stroke();
+        }
+
+        // Food
+        if (food) {
+          ctx.fillStyle = '#ef4444';
+
+          ctx.fillRect(
+            food.x * CELL + 3,
+            food.y * CELL + 3,
+            CELL - 6,
+            CELL - 6
+          );
+        }
+
+        // Snake
+        if (snake) {
+          snake.forEach((p, i) => {
+            ctx.fillStyle =
+              i === 0 ? '#86efac' : '#22c55e';
+
+            ctx.fillRect(
+              p.x * CELL + 2,
+              p.y * CELL + 2,
+              CELL - 4,
+              CELL - 4
+            );
+          });
+        }
+
+        // Game over overlay
+        if (gameover) {
+          ctx.fillStyle = 'rgba(0,0,0,.65)';
+          ctx.fillRect(0, 0, 360, 500);
+
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 27px Arial';
+          ctx.textAlign = 'center';
+
+          ctx.fillText(
+            'GAME OVER',
+            180,
+            250
+          );
+        }
+      }
+
+      // =================================
+      // 12. KEYBOARD CONTROLS
+      // =================================
+
+      const dirs = {
+        up:    { x: 0,  y: -1 },
+        down:  { x: 0,  y: 1 },
+        left:  { x: -1, y: 0 },
+        right: { x: 1,  y: 0 }
+      };
+
+      document.addEventListener('keydown', e => {
+
+        const map = {
+          ArrowUp: dirs.up,
+          ArrowDown: dirs.down,
+          ArrowLeft: dirs.left,
+          ArrowRight: dirs.right
+        };
+
+        if (map[e.key]) {
+          e.preventDefault();
+          steer(map[e.key]);
+        }
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          pause();
+        }
+
+        if (e.key === 'Enter') {
+          reset();
+        }
+      });
+
+      // =================================
+      // 13. ON-SCREEN CONTROLS
+      // =================================
+
+      document
+        .querySelectorAll('[data-dir]')
+        .forEach(button => {
+
+          button.addEventListener('click', () => {
+            steer(dirs[button.dataset.dir]);
+          });
+
+        });
+
+      // =================================
+      // 14. BUTTON EVENT LISTENERS
+      // =================================
+
+      document.getElementById('start').onclick = reset;
+      document.getElementById('pause').onclick = pause;
+
+      // =================================
+      // 15. INITIAL GAME PREVIEW
+      // =================================
+
+      snake = [
+        { x: 8, y: 12 },
+        { x: 7, y: 12 },
+        { x: 6, y: 12 }
+      ];
+
+      dir = { x: 1, y: 0 };
+      nextDir = dir;
+
+      spawn();
+      draw();
+
+    })();
+  </script>
+
+</body>
+</html>
